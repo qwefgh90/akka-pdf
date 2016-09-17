@@ -4,7 +4,7 @@ import com.typesafe.sbt.SbtMultiJvm.MultiJvmKeys.MultiJvm
 val akkaVersion = "2.4.4"
 
 val project = Project(
-    id = "akka-sample-cluster-scala",
+    id = "akka-pdf-cluster",
     base = file(".")
   )
   .settings(SbtMultiJvm.multiJvmSettings: _*)
@@ -47,8 +47,7 @@ val project = Project(
         Tests.Output(overall,
           testResults.events ++ multiNodeResults.events,
           testResults.summaries ++ multiNodeResults.summaries)
-    },
-    licenses := Seq(("CC0", url("http://creativecommons.org/publicdomain/zero/1.0")))
+    }
   )
   .configs (MultiJvm)
 

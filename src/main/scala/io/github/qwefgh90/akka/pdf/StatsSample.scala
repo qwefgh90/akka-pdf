@@ -16,36 +16,12 @@ import akka.cluster.ClusterEvent._
 import akka.cluster.MemberStatus
 import akka.routing.ConsistentHashingRouter.ConsistentHashableEnvelope
 import akka.routing.FromConfig
-import io.github.qwefgh90.akka.pdf.PDFWorker._
+import scala.concurrent.ExecutionContext.Implicits.global
 
-object StatsSample {
-  def main(args: Array[String]): Unit = {
-    if (args.isEmpty) {
-      startup(Seq("2551", "2552", "0"))
-      StatsSampleClient.main(Array.empty)
-    } else {
-      startup(args)
-    }
-  }
+import akka.event._
+import io.github.qwefgh90.akka.pdf.PdfWorker._
 
-  def startup(ports: Seq[String]): Unit = {
-    ports foreach { port =>
-      // Override the configuration of the port when specified as program argument
-      val config =
-        ConfigFactory.parseString(s"akka.remote.netty.tcp.port=" + port).withFallback(
-          ConfigFactory.parseString("akka.cluster.roles = [compute]")).
-          withFallback(ConfigFactory.load("stats1"))
-
-      val system = ActorSystem("ClusterSystem", config)
-
-      
-      system.actorOf(Props[PDFWorker], name = "pdfWorker")
-      //      system.actorOf(Props[StatsService], name = "statsService")
-    }
-  }
-}
-
-object StatsSampleClient {
+object PdfClientSample {
   def main(args: Array[String]): Unit = {
     // note that client is not a compute node, role not defined
 
@@ -55,17 +31,24 @@ object StatsSampleClient {
     
     val system = ActorSystem("ClusterSystem", config)
 
-    system.actorOf(Props(classOf[StatsSampleClient]), name="serviceActor")
+    val actor = system.actorOf(Props(classOf[PdfClientSample]), name="serviceActor")
+
+    system.scheduler.scheduleOnce(2.seconds, actor, "tick")
+    system.scheduler.scheduleOnce(2.seconds, actor, "tick")
+    system.scheduler.scheduleOnce(2.seconds, actor, "tick")
+    system.scheduler.scheduleOnce(2.seconds, actor, "tick")
+    system.scheduler.scheduleOnce(8.seconds, actor, "poison")
+    system.scheduler.scheduleOnce(15.seconds, actor, "poison_self")
   }
 }
 
-class StatsSampleClient extends Actor {
+class PdfClientSample extends Actor {
+  val log = Logging(context.system, this)
   val cluster = Cluster(context.system)
-  val workerRouter = context.actorOf(FromConfig.props(Props[PDFWorker]), name = "workerRouter")
+  val workerRouter = context.actorOf(FromConfig.props(Props[PdfWorker]), name = "workerRouter")
 
   import context.dispatcher
-  val tickTask = context.system.scheduler.schedule(2.seconds, 2.seconds, self, "tick")
-  context.system.scheduler.schedule(10.seconds, 10.seconds, self, "poison")
+
   var nodes = Set.empty[Address]
 
   override def preStart(): Unit = {
@@ -73,48 +56,48 @@ class StatsSampleClient extends Actor {
   }
   override def postStop(): Unit = {
     cluster.unsubscribe(self)
-    tickTask.cancel()
+    cluster.leave(cluster.selfAddress)
+    context.system.terminate()
   }
 
   def receive = {
+    case "tick" =>{
+      log.info("send tick")
+      workerRouter ! "tick"
+    }
+    case "tok" =>{
+      log.info(sender.toString + "tok")
+    }
+    case "poison_self" => {
+      println("send poison self")
+      context.stop(self)
+    }
     case "poison" =>{
-      println("send poisonPill")
+      log.info("send poisonPill")
       workerRouter ! Broadcast(PoisonPill)
     }
-    case "tick"  =>{
-    
-      println("tell tick: " + workerRouter.toString)
-      workerRouter.tell("test", self)
-      workerRouter ! MergeJob(FilePDFList(List(FilePDF("c:/Users/ChangChang/Documents/test1.pdf"), FilePDF("c:/Users/ChangChang/Documents/test2.pdf"))))
+    case "filetofile"  =>{
+      log.info("tell tick: " + workerRouter.toString)
+      workerRouter ! FileMerge2FileJob(List("c:/Users/ChangChang/Documents/test1.pdf", "c:/Users/ChangChang/Documents/test2.pdf"), "c:/Users/ChangChang/Documents/r.pdf")
     }
-    case result: String => println(result)
-    case result: StatsResult =>
-      println(result)
-    case failed: JobFailed =>
-      println(failed)
+
     case state: CurrentClusterState =>
       nodes = state.members.collect {
         case m if m.hasRole("compute") && m.status == MemberStatus.Up => m.address
       }
     case MemberUp(m) if m.hasRole("compute") =>{
       nodes += m.address
-      println("memberUp: " + m.toString)
+      log.info("MemberUp: " + m.toString)
     }
-    case other: MemberEvent =>{
-      nodes -= other.member.address
-      println("other: " + other.toString)
-    }  
+
     case UnreachableMember(m) =>{
       nodes -= m.address
-      println("UnreachableMember: " + m.toString)
+      log.info("UnreachableMember: " + m.toString)
 
-    }  
-    case ReachableMember(m) if m.hasRole("compute") =>
-      {
+    }
+    case ReachableMember(m) if m.hasRole("compute") =>{
       nodes += m.address
-      println("ReachableMember: " + m.toString)
-      }
-    case _ => println("other receive")
-
+      log.info("ReachableMember: " + m.toString)
+    }
   }
 }
