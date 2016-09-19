@@ -1,21 +1,24 @@
-import com.typesafe.sbt.SbtMultiJvm
-import com.typesafe.sbt.SbtMultiJvm.MultiJvmKeys.MultiJvm
+name := """Locker"""
+
+version := "1.0-SNAPSHOT"
+
+lazy val root = (project in file(".")).enablePlugins(PlayScala)
 
 val akkaVersion = "2.4.4"
+scalaVersion := "2.11.7"
 
-val project = Project(
-    id = "akka-pdf-cluster",
-    base = file(".")
-  )
-  .settings(SbtMultiJvm.multiJvmSettings: _*)
-  .settings(
-    name := """PROJECTNAME""",
-    version := "2.4.4",
-    scalaVersion := "2.11.7",
-    scalacOptions in Compile ++= Seq("-encoding", "UTF-8", "-target:jvm-1.8", "-deprecation", "-feature", "-unchecked", "-Xlog-reflective-calls", "-Xlint"),
-    javacOptions in Compile ++= Seq("-source", "1.8", "-target", "1.8", "-Xlint:unchecked", "-Xlint:deprecation"),
-    libraryDependencies ++= Seq(
-      "org.apache.pdfbox" % "pdfbox" % "2.0.2",
+libraryDependencies ++= Seq(
+  jdbc,
+  cache,
+  ws,
+  "org.scalatestplus.play" %% "scalatestplus-play" % "1.5.1" % Test,
+  "org.webjars" % "requirejs" % "2.2.0",
+  "org.webjars" % "angularjs" % "1.5.7",
+  "org.webjars" % "bootstrap" % "3.3.7-1",
+  "org.webjars.npm" % "angular-ui-bootstrap" % "2.0.0",
+  "org.webjars.npm" % "jquery" % "1.12.4",
+  "org.webjars.bower" % "ng-file-upload" % "12.2.5",
+       "org.apache.pdfbox" % "pdfbox" % "2.0.2",
       "org.apache.pdfbox" % "xmpbox" % "2.0.2",
       "org.scalatest" % "scalatest_2.11" % "2.2.6" % "test",
       "org.scalactic" % "scalactic_2.11" % "2.2.6",
@@ -26,28 +29,11 @@ val project = Project(
       "com.typesafe.akka" %% "akka-cluster-tools" % akkaVersion,
       "com.typesafe.akka" %% "akka-multi-node-testkit" % akkaVersion,
       "org.scalatest" %% "scalatest" % "2.2.1" % "test",
-      "io.kamon" % "sigar-loader" % "1.6.6-rev002"),
-    javaOptions in run ++= Seq(
-      "-Xms128m", "-Xmx1024m", "-Djava.library.path=./target/native"),
-    Keys.fork in run := true,
-    mainClass in (Compile, run) := Some("sample.cluster.simple.SimpleClusterApp"),
-    // make sure that MultiJvm test are compiled by the default test compilation
-    compile in MultiJvm <<= (compile in MultiJvm) triggeredBy (compile in Test),
-    // disable parallel tests
-    parallelExecution in Test := false,
-    // make sure that MultiJvm tests are executed by the default test target,
-    // and combine the results from ordinary test and multi-jvm tests
-    executeTests in Test <<= (executeTests in Test, executeTests in MultiJvm) map {
-      case (testResults, multiNodeResults)  =>
-        val overall =
-          if (testResults.overall.id < multiNodeResults.overall.id)
-            multiNodeResults.overall
-          else
-            testResults.overall
-        Tests.Output(overall,
-          testResults.events ++ multiNodeResults.events,
-          testResults.summaries ++ multiNodeResults.summaries)
-    }
+      "io.kamon" % "sigar-loader" % "1.6.6-rev002"
   )
-  .configs (MultiJvm)
+  
+publishTo := Some("My resolver" at "http://localhost:8081/nexus/content/repositories/snapshots/")
 
+credentials += Credentials(
+  "Sonatype Nexus Repository Manager", "localhost", "admin", "admin123"
+)

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html ng-controller="MainController">
+  <head>
+    <script data-main="@routes.Assets.versioned("javascripts/entry.js")" type="text/javascript" src="@routes.Assets.versioned("lib/requirejs/require.js")"></script>
+  </head>
+  <body>
+     <button ngf-select="uploadFiles($files, $invalidFiles)" multiple
+          accept="image/*" ngf-max-height="1000" ngf-max-size="1MB">
+      Select Files</button>
+    <br>
+    <form action="/MemoryMergeToMemory" method="post" enctype="multipart/form-data">
+      Select pdf: <input type="file" name="files" multiple>
+      <input type="submit">
+    </form>
+
+    <p>Try selecting more than one file when browsing for files.</p>
+
+    <p><strong>Note:</strong> The multiple attribute of the input tag is not supported in Internet Explorer 9 and earlier versions.</p>
+
+  </body>
+</html>
+
