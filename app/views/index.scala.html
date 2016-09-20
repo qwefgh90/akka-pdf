@@ -5,7 +5,7 @@
   </head>
   <body>
      <button ngf-select="uploadFiles($files, $invalidFiles)" multiple
-          accept="image/*" ngf-max-height="1000" ngf-max-size="1MB">
+          accept="*/*" ngf-max-height="1000" ngf-max-size="1MB">
       Select Files</button>
     <br>
     <form action="/MemoryMergeToMemory" method="post" enctype="multipart/form-data">

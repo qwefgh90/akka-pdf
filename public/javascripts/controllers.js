@@ -5,14 +5,17 @@ define(function () {
     var mainController = function($scope, $location, Upload, $timeout){
         $scope.uploadFiles = function (files) {
             $scope.files = files;
+            var data = {};
+            var i = 0;
+            $scope.files.forEach(function(file){
+                var key = 'file'+i;
+                data[key] = file;
+                i++;
+            });
             if (files && files.length) {
                 Upload.upload({
                     url: '/MemoryMergeToMemory',
-                    data: {
-                        files: files,
-                        meta: {'name': {'lastname': 'choe', 'firstname': 'changwon'}, 'age': [20,19,18]},
-                        meta2: 'this is meta2'
-                    }
+                    data: data
                 }).then(function (response) {
                     $timeout(function () {
                         $scope.result = response.data;
