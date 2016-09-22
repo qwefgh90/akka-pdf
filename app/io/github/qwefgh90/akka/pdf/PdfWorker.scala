@@ -186,12 +186,14 @@ class PdfWorker extends Actor {
       if(memoryPresenceValidate(pdfList)){
         try{
           val is = PDFUtilWrapper.merge(pdfList.map{pdf =>
+            println("pdf: " + pdf._2.length)
             val bis = new ByteArrayInputStream(pdf._2);
             bis.asInstanceOf[InputStream]
           }.asJava)
           val fo = new ByteArrayOutputStream()
           readAndWrite(is, fo)
           val result = fo.toByteArray()
+          println("result: " + result.length)
           sender() ! MergeResult(Success("merged"), Some(MemoryPdf("", result)))
         }catch{
           case e: Exception => sender() ! MergeResult(Fail(e.toString), None)

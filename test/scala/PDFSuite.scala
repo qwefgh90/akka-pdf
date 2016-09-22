@@ -29,7 +29,7 @@ class PDFSpec extends UnitSpec {
     assert(targetPath.toFile.exists == true)
   }
   "PDF" should "merged" in {
-    val flist = scala.collection.mutable.Buffer[InputStream](new FileInputStream("c:/Users/ChangChang/Documents/test1.pdf"), new FileInputStream("c:/Users/ChangChang/Documents/test2.pdf"))
+    val flist = scala.collection.mutable.Buffer[InputStream](new FileInputStream("c:/Users/ChangChang/Documents/test3.pdf"), new FileInputStream("c:/Users/ChangChang/Documents/test4.pdf"))
     val is = PDFUtilWrapper.merge(flist.asJava)
     val length = is.available()
     assert(length > 0)
