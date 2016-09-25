@@ -2,6 +2,8 @@ import java.io._
 
 import collection.JavaConverters._
 import org.scalatest._
+import org.apache.pdfbox.rendering._
+import org.apache.pdfbox.pdmodel._
 import io.github.qwefgh90.akka.pdf._
 import java.nio.file._
 import java.net._
@@ -10,8 +12,22 @@ abstract class UnitSpec extends FlatSpec with Matchers with OptionValues with In
 class PDFSpec extends UnitSpec {
   
   def using[R <: Closeable, T](stream: R)(f: R => T): T = try { f(stream) } finally { stream.close() }
+
+  "PDF" should "removeEmptyPages" in {
+    val htmlSource = "file://" + getClass.getResource("/emptypage.pdf").getPath;
+    val htmlSourcePath = Paths.get(new URI(htmlSource))
+    val htmlDestPath = Paths.get(new URI(htmlSource)).getParent.resolve("emptypage_copy.pdf")
+    Files.delete(htmlDestPath)
+    Files.copy(htmlSourcePath, htmlDestPath)
+    PdfUtil.removeEmptyPages(htmlDestPath.toAbsolutePath.toString)
+    val document = PDDocument.load(new File(htmlDestPath.toAbsolutePath.toString))
+    assert(document.getNumberOfPages == 2)
+    document.close()
+  }
+
   "PDF" should "htmlToPdf" in {
     val htmlSource = "file://" + getClass.getResource("/a4.html").getPath;
+   // val htmlSource = "http://localhost:9000/"
     val htmlSourcePath = Paths.get(new URI(htmlSource))
     val parent = htmlSourcePath.getParent
     val targetPath = parent.resolve("test.pdf")

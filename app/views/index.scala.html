@@ -2,24 +2,22 @@
 <html ng-controller="MainController">
   <head>
     <script data-main="@routes.Assets.versioned("javascripts/entry.js")" type="text/javascript" src="@routes.Assets.versioned("lib/requirejs/require.js")"></script>
+    <link rel="stylesheet" href="@routes.Assets.versioned("lib/bootstrap/css/bootstrap.css")" type="text/css" />
   </head>
-  <body>
-    <p>by chang</p>
-    <p>PDF Merge: </p>
+  <body class="container">
+    <h3>PDF Merge: </h3>
     <button ngf-select="uploadFiles($files, $invalidFiles)" multiple
-            accept="application/pdf" ngf-max-height="1000" ngf-max-size="1MB">
+            accept="application/pdf" ngf-max-height="1000" ngf-max-size="1MB" class="btn btn-default">
       Select Files</button>
-    <!-- <input ng-model="path" type="text"/>-->
-    
-    <!--    <form action="/MemoryMergeToMemory" method="post" enctype="multipart/form-data">
-            Select pdf: <input type="file" name="files" multiple>
-            <input type="submit">
-    </form>
+    <hr>
+    <h3>Web to PDF: </h3>
+    <div class="form-group">
+      <input type="text" ng-model="url" class="form-control col-sm-8" placeholder="https://github.com" />
+      <button class="btn btn-default" ng-click="webToPdf()">Convert</button>
+    </div>
 
-    <p>Try selecting more than one file when browsing for files.</p>
-
-    <p><strong>Note:</strong> The multiple attribute of the input tag is not supported in Internet Explorer 9 and earlier versions.</p>-->
-
+    <hr>
+    <p>by chang (https://github.com/qwefgh90)</p>
   </body>
 </html>
 

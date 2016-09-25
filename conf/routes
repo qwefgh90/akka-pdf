@@ -6,10 +6,8 @@
 GET     /                           controllers.HomeController.index
 GET     /tick                       controllers.HomeController.tick
 GET     /a4                         controllers.HomeController.a4
+POST    /WebToPdf                   controllers.HomeController.WebToPdf    
 POST    /MemoryMergeToMemory                controllers.HomeController.MemoryMergeToMemory
-POST    /MemoryMergeToFile                  controllers.HomeController.MemoryMergeToFile
-POST    /FileMergeToFile                    controllers.HomeController.FileMergeToFile
-POST    /FileMergeToMemory                  controllers.HomeController.FileMergeToMemory
 GET     /download/:id                           controllers.HomeController.download(id: Int)
 
 # An example controller showing how to use dependency injection

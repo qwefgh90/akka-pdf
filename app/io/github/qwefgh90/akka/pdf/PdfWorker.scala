@@ -186,14 +186,13 @@ class PdfWorker extends Actor {
       if(memoryPresenceValidate(pdfList)){
         try{
           val is = PDFUtilWrapper.merge(pdfList.map{pdf =>
-            println("pdf: " + pdf._2.length)
             val bis = new ByteArrayInputStream(pdf._2);
             bis.asInstanceOf[InputStream]
           }.asJava)
           val fo = new ByteArrayOutputStream()
           readAndWrite(is, fo)
-          val result = fo.toByteArray()
-          println("result: " + result.length)
+          val result = removeEmptyPages(fo.toByteArray())
+
           sender() ! MergeResult(Success("merged"), Some(MemoryPdf("", result)))
         }catch{
           case e: Exception => sender() ! MergeResult(Fail(e.toString), None)
@@ -217,22 +216,29 @@ class PdfWorker extends Actor {
       log.info(uri.toString)
       
     case HtmlToPdfMemoryJob(uri) =>
-      if(uriValidate(uri)){
-        val tempFile = File.createTempFile("pdfakka", System.currentTimeMillis.toString)
-        htmlToPdf(uri, tempFile.getAbsolutePath) match {
-          case Some(process) =>
-            val fis = new FileInputStream(tempFile)
-            val buffer = new mutable.ArrayBuffer[Byte]
-            Stream.continually(fis.read()).takeWhile(_ != -1).map(_.toByte).foreach(buffer += _)
-            sender() ! TransResult(Success("trans"), Some(MemoryPdf("", buffer.toArray)))
-            tempFile.delete()
-          case None =>
-            sender() ! TransResult(TranslationError("trans fail"), None)
+      try{
+        if(uriValidate(uri)){
+          val tempFile = File.createTempFile("pdfakka", System.currentTimeMillis.toString + ".pdf")
+          tempFile.delete()
+          log.info("source absolute uri: " + uri)
+          log.info("dest absolute path: " + tempFile.getAbsolutePath)
+          htmlToPdf(uri, tempFile.getAbsolutePath) match {
+            case Some(process) =>
+              val fis = new FileInputStream(tempFile)
+              val buffer = new mutable.ArrayBuffer[Byte]
+              Stream.continually(fis.read()).takeWhile(_ != -1).map(_.toByte).foreach(buffer += _)
+              sender() ! TransResult(Success("trans"), Some(MemoryPdf("", buffer.toArray)))
+              tempFile.delete()
+            case None =>
+              sender() ! TransResult(TranslationError("trans fail"), None)
+          }
+        }else{
+          sender() ! TransResult(UriError("invalid uri error"), None)
         }
-      }else{
-        sender() ! TransResult(UriError("invalid uri error"), None)
+      }catch{
+        case e: IOException =>
+          sender() ! TransResult(Fail(e.toString), None)
       }
-      log.info(uri.toString)
     case state: CurrentClusterState =>
       nodes = state.members.collect {
         case m if m.hasRole("compute") && m.status == MemberStatus.Up => m.address
