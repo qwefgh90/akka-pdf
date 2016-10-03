@@ -1,0 +1,1 @@
+phantomjs.exe rasterize.js http://localhost:9000 web2pdf.pdf 210mm*297mm

@@ -1,0 +1,13 @@
+.top-header{
+    padding-top: 20px;
+    padding-bottom: 20px;
+    background-color: #6f5499;
+    color: white;
+}
+.top-header p{
+    color: #cdbfe3
+}
+
+.top-nav a{
+    font-weight: 500;
+}

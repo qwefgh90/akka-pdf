@@ -1,0 +1,7 @@
+define(function () {
+
+	return app.controller("ViewHomeController", function ($scope) {
+		console.log('ViewHomeController working');
+	});
+	
+});
