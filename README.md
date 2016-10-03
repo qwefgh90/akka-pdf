@@ -2,10 +2,24 @@
 
 AKKA-PDF is pdf translation sample project under Apache2 License 
 
-1)run cluster
+## dev
 
-sbt "runMain io.github.qwefgh90.akka.pdf.PdfWorker 2551"
+- activator
 
-2)run play
+- project pdfActor
 
-sbt run
+- run 2551 (you should select PdfWorker)
+
+- project playApp
+
+- run 80 (running port)
+
+## package & run
+
+- activator
+
+- assembly
+
+- java -jar PdfActor-assembly-0.01.jar 2551
+
+- java -jar -Dplay.crypto.secret=abcdefghijk PlayApp-assembly-0.01.jar
