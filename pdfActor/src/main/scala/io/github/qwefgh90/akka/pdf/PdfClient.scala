@@ -22,7 +22,7 @@ import akka.event._
 import io.github.qwefgh90.akka.pdf.PdfWorker._
 
 object PdfClient {
-  def main(args: Array[String]): Unit = {
+/*  def main(args: Array[String]): Unit = {
     val config = ConfigFactory.parseString(s"akka.remote.netty.tcp.port=" + 0).withFallback(
       ConfigFactory.parseString("akka.cluster.roles = [frontend]"))
     .withFallback(ConfigFactory.load("akka-cluster"))
@@ -31,7 +31,7 @@ object PdfClient {
     val system = ActorSystem("ClusterSystem", config)
 
     val actor = system.actorOf(Props(classOf[PdfClient]), name="serviceActor")
-  }
+  }*/
 }
 
 class PdfClient extends Actor {

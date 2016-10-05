@@ -4,6 +4,8 @@ import java.awt._
 import java.awt.image._
 import java.io._
 import java.nio.file._
+import java.nio.file.attribute._
+import java.util._
 import org.apache.pdfbox.rendering._
 import org.apache.pdfbox.pdmodel._
 object PdfUtil{
@@ -22,11 +24,14 @@ object PdfUtil{
 		temp
 	}
 	lazy val tempPhantomjsPath = {
-		val temp = Files.createTempFile(System.currentTimeMillis.toString, "phantomjs.exe")
-		val is = getClass.getResourceAsStream("/phantomjs.exe")
+        val systemName = System.getProperty("os.name").toLowerCase;
+		val temp = if(systemName == "linux") Files.createTempFile(System.currentTimeMillis.toString, "phantomjs") else Files.createTempFile(System.currentTimeMillis.toString, "phantomjs.exe")
+
+		val is = if(systemName == "linux") getClass.getResourceAsStream("/phantomjs") else getClass.getResourceAsStream("/phantomjs.exe")
 		try{
 			Files.delete(temp)
 			Files.copy(is, temp)
+            temp.toFile.setExecutable(true)
 			temp.toFile.deleteOnExit()
 			println("phantomjs copied: " + temp.toString)
 		}finally{

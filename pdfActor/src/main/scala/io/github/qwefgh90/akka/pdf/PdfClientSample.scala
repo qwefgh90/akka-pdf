@@ -22,7 +22,7 @@ import akka.event._
 import io.github.qwefgh90.akka.pdf.PdfWorker._
 
 object PdfClientSample {
-  def main(args: Array[String]): Unit = {
+/*  def main(args: Array[String]): Unit = {
     // note that client is not a compute node, role not defined
 
     val config = ConfigFactory.parseString(s"akka.remote.netty.tcp.port=" + 0).withFallback(
@@ -40,7 +40,7 @@ object PdfClientSample {
     system.scheduler.scheduleOnce(2.seconds, actor, "tick")
     system.scheduler.scheduleOnce(8.seconds, actor, "poison")
     system.scheduler.scheduleOnce(15.seconds, actor, "poison_self")
-  }
+  }*/
 }
 
 class PdfClientSample extends Actor {
