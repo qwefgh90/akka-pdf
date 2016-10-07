@@ -7,11 +7,11 @@
 		<h2>Run the Application</h2>
 
 		<p>
-			This tutorial will demonstrate a pdf api application. web to pdf translation and pdf merge are implemented.
+			This tutorial will demonstrate a pdf api application. web to pdf translation and pdf merge are implemented. To serve this purpose this application template integrates <code>Akka(cluster)</code>, <code>Play Framework</code> and <code>PDFBox</code>.
   	</p>
     
     <p>
-      Run akka which processes pdf and many instances can be started. cluster instances are identified by tcp port. (2551, 2552, ...)
+      Run akka instances which process pdf and many instances can be started. cluster instances are identified by tcp port. (2551, 2552, ...)
     </p>
 		<pre>
 			<code>
@@ -21,7 +21,7 @@
       </code>
 		</pre>
     <p>
-      Run API Server which provide "url to pdf" and "pdf merge". you can connect http://localhost:9000.
+      Run API Server which provide "url to pdf" and "pdf merge".
     </p>
 		<pre>
 			<code>
@@ -31,6 +31,9 @@
       </code>
 		</pre>
     
+	<p>
+	 you can connect http://localhost:9000 and enjoy pdf api !
+	</p>
     <!--
     <p>
       
