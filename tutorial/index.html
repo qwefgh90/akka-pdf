@@ -11,21 +11,21 @@
   	</p>
     
     <p>
-      run akka which processes pdf and many instances can be started. cluster instances are identified by tcp port. (2551, 2552, ...)
+      Run akka which processes pdf and many instances can be started. cluster instances are identified by tcp port. (2551, 2552, ...)
     </p>
 		<pre>
 			<code>
-        activator
+        sbt
         project pdfActor
         run 2551
       </code>
 		</pre>
     <p>
-      run API Server which provide "url to pdf" and "pdf merge". you can connect http://localhost:9000.
+      Run API Server which provide "url to pdf" and "pdf merge". you can connect http://localhost:9000.
     </p>
 		<pre>
 			<code>
-        activator
+        sbt
         project playApp
         run 9000
       </code>
