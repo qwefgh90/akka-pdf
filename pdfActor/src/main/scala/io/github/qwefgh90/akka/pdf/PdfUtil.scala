@@ -8,8 +8,10 @@ import java.nio.file.attribute._
 import java.util._
 import org.apache.pdfbox.rendering._
 import org.apache.pdfbox.pdmodel._
+import org.apache.commons.logging.Log
+import org.apache.commons.logging.LogFactory
 object PdfUtil{
-
+    val LOG = LogFactory.getLog(PdfUtil.getClass)
 	lazy val tempRasterizePath = {
 		val temp = Files.createTempFile(System.currentTimeMillis.toString, "rasterize.js")
 		val is = getClass.getResourceAsStream("/rasterize.js")
@@ -17,7 +19,7 @@ object PdfUtil{
 			Files.delete(temp)
 			Files.copy(is, temp)
 			temp.toFile.deleteOnExit()
-			println("rasterize copied: " + temp.toString)
+			LOG.info("rasterize copied: " + temp.toString)
 		}finally{
 		  is.close()	
 		}
@@ -25,15 +27,18 @@ object PdfUtil{
 	}
 	lazy val tempPhantomjsPath = {
         val systemName = System.getProperty("os.name").toLowerCase;
-		val temp = if(systemName == "linux") Files.createTempFile(System.currentTimeMillis.toString, "phantomjs") else Files.createTempFile(System.currentTimeMillis.toString, "phantomjs.exe")
+        val is64bits = System.getProperty("os.arch") == "amd64"
+        if(!is64bits)
+            throw new UnsupportedOperationException("This opration cannot be supported in 32bits OS")
+		val temp = if(systemName == "linux") Files.createTempFile(System.currentTimeMillis.toString, "phantomjs") else if(systemName.contains("windows")) Files.createTempFile(System.currentTimeMillis.toString, "phantomjs.exe") else throw new UnsupportedOperationException("This opration cannot be supported in any other OS except Windows or Ubuntu")
 
-		val is = if(systemName == "linux") getClass.getResourceAsStream("/phantomjs") else getClass.getResourceAsStream("/phantomjs.exe")
+		val is = if(systemName == "linux") getClass.getResourceAsStream("/phantomjs") else if(systemName.contains("windows")) getClass.getResourceAsStream("/phantomjs.exe") else throw new UnsupportedOperationException("This opration cannot be supported in any other OS except Windows or Ubuntu")
 		try{
 			Files.delete(temp)
 			Files.copy(is, temp)
             temp.toFile.setExecutable(true)
 			temp.toFile.deleteOnExit()
-			println("phantomjs copied: " + temp.toString)
+			LOG.info("phantomjs copied: " + temp.toString)
 		}finally{
 		  is.close()	
 		}
@@ -44,14 +49,10 @@ object PdfUtil{
    * destPath: directory where pdf is created
    */
   def htmlToPdf(uri: String, destPath: String): Option[Process] = {
-    //val phantomjs = getClass.getResource("/phantomjs.exe").toURI//.toString.substring(6)
-    //val phantomjsPath = Paths.get(phantomjs)
-	//val rasterize = getClass.getResource("/rasterize.js").toURI//.toString.substring(6)
-    //val rasterizePath = Paths.get(rasterize)
-	
+    Files.deleteIfExists(Paths.get(destPath))
 	if(Files.exists(tempPhantomjsPath) && Files.exists(tempRasterizePath)){
       val command = Array[String](tempPhantomjsPath.toAbsolutePath.toString, tempRasterizePath.toAbsolutePath.toString, uri, destPath, "210mm*297mm")
-      println("command: " + command.mkString(" "))
+      LOG.info("command: " + command.mkString(" "))
       val process = Runtime.getRuntime().exec(command)
       process.waitFor()
       if(Files.exists(Paths.get(destPath))){
@@ -64,17 +65,6 @@ object PdfUtil{
       None
   }
 
-  /*
-   * remove final page
-   */
-  def removeLast(path: String) {
-    using(PDDocument.load(new File(path))){ document =>
-      val last = document.getNumberOfPages - 1
-      if(document.getNumberOfPages > 1)
-        document.removePage(last)
-      document.save(path)
-    }
-  }
 
   def removeEmptyPages(path: String){
     using(PDDocument.load(new File(path))){ document =>
@@ -84,7 +74,7 @@ object PdfUtil{
         val page: PDPage = document.getPage(i)
         val image = pdfRenderer.renderImage(i)
         if(isBlank(image)){
-          println(s"removed $i page")
+          LOG.info(s"removed $i page")
           document.removePage(i)
           i = i - 1
         }
@@ -104,7 +94,7 @@ object PdfUtil{
           val page: PDPage = document.getPage(i)
           val image = pdfRenderer.renderImage(i)
           if(isBlank(image)){
-            println(s"removed $i page")
+            LOG.info(s"removed $i page")
             document.removePage(i)
             i = i - 1
           }
@@ -126,9 +116,7 @@ object PdfUtil{
 
     for (x <- 0 until width) {
         for (y <- 0 until height) {
-          //println(s"width, height: $width, $height" + s"x,y:  $x, $y")
           val c = new Color(bufferedImage.getRGB(x, y))
-          // verify light gray and white
           if (c.getRed() == c.getGreen() && c.getRed() == c.getBlue()
             && c.getRed() >= 248) {
             count += 1

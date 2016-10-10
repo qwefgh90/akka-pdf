@@ -2,6 +2,8 @@ import java.io._
 
 import collection.JavaConverters._
 import org.scalatest._
+import org.scalatest.MustMatchers._
+import org.scalatest.Matchers._
 import org.apache.pdfbox.rendering._
 import org.apache.pdfbox.pdmodel._
 import io.github.qwefgh90.akka.pdf._
@@ -17,7 +19,7 @@ class PDFSpec extends UnitSpec {
     val htmlSource = "file://" + getClass.getResource("/emptypage.pdf").getPath;
     val htmlSourcePath = Paths.get(new URI(htmlSource))
     val htmlDestPath = Paths.get(new URI(htmlSource)).getParent.resolve("emptypage_copy.pdf")
-    Files.delete(htmlDestPath)
+    Files.deleteIfExists(htmlDestPath)
     Files.copy(htmlSourcePath, htmlDestPath)
     PdfUtil.removeEmptyPages(htmlDestPath.toAbsolutePath.toString)
     val document = PDDocument.load(new File(htmlDestPath.toAbsolutePath.toString))
@@ -27,41 +29,22 @@ class PDFSpec extends UnitSpec {
 
   "PDF" should "htmlToPdf" in {
     val htmlSource = "file://" + getClass.getResource("/a4.html").getPath;
-   // val htmlSource = "http://localhost:9000/"
     val htmlSourcePath = Paths.get(new URI(htmlSource))
     val parent = htmlSourcePath.getParent
     val targetPath = parent.resolve("test.pdf")
-    targetPath.toFile.delete()
+    Files.deleteIfExists(targetPath)
     println("html: " + htmlSource)
     println("target: " + targetPath.toString)
     val processOpt = PdfUtil.htmlToPdf(htmlSource, targetPath.toAbsolutePath.toString)
     processOpt should not be empty
-    val process = processOpt.get
-    using(process.getInputStream){ stream =>
-      val buf = new StringBuilder
-      Stream.continually(stream.read()).takeWhile(_ != -1).map(_.toChar).foreach(buf += _)
-      println(buf.toString)
-    }
-    assert(targetPath.toFile.exists == true)
+    Files.size(targetPath) should be > 0L
+    targetPath.toFile.exists should be (true)
   }
+
   "PDF" should "merged" in {
-    val flist = scala.collection.mutable.Buffer[InputStream](new FileInputStream("c:/Users/ChangChang/Documents/test3.pdf"), new FileInputStream("c:/Users/ChangChang/Documents/test4.pdf"))
+    val flist = scala.collection.mutable.Buffer[InputStream](getClass.getResourceAsStream("/test1.pdf"), getClass.getResourceAsStream("/test2.pdf"))
     val is = PDFUtilWrapper.merge(flist.asJava)
     val length = is.available()
-    assert(length > 0)
-    val file = new File("c:/Users/ChangChang/Documents/result.pdf")
-    val fo = new FileOutputStream(file)
-    using(is){is => {
-      using(fo){fo => {
-        println("len: " + length)
-        Stream.continually(is.read()).takeWhile(_ != -1).map(_.toByte).foreach(fo.write(_))
-      }
-      }
-    }
-    }
-    assertResult(true){
-      file.exists()
-    }
-   //file.delete()
+    length should be > 0
   }
 }

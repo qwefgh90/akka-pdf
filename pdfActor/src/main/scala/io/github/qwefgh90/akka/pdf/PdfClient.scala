@@ -29,7 +29,6 @@ object PdfClient {
     .withFallback(ConfigFactory.load("stats1"))
     
     val system = ActorSystem("ClusterSystem", config)
-
     val actor = system.actorOf(Props(classOf[PdfClient]), name="serviceActor")
   }*/
 }
