@@ -8,7 +8,11 @@ AKKA-PDF is pdf translation sample project under Apache2 License
 
 - pdfActor/run 2551 (you should select PdfWorker)
 
+- Or activator "pdfActor/run 2551"
+
 - playApp/run 80 (running port)
+
+- Or activator "playApp/run 80"
 
 ## package & run
 
