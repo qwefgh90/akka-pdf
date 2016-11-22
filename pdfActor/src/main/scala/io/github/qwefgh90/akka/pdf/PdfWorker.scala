@@ -123,6 +123,7 @@ class PdfWorker extends Actor {
     case MemoryMerge2MemoryJob(pdfList) =>
       if(memoryPresenceValidate(pdfList)){
         try{
+          log.info("MemoryMerge2MemoryJob Request: " + pdfList.mkString)
           val is = PDFUtilWrapper.merge(pdfList.map{pdf =>
             val bis = new ByteArrayInputStream(pdf._2);
             bis.asInstanceOf[InputStream]
@@ -130,40 +131,48 @@ class PdfWorker extends Actor {
           val fo = new ByteArrayOutputStream()
           readAndWrite(is, fo)
           val result = removeEmptyPages(fo.toByteArray())
+          log.info("MemoryMerge2MemoryJob Success")
           sender() ! MergeResult(Success("merged"), Some(MemoryPdf("", result)))
         }catch{
-          case e: Exception => sender() ! MergeResult(Fail(e.toString), None)
+          case e: Exception => {
+            log.error("MemoryMerge2MemoryJob failed: " + e.toString)
+            sender() ! MergeResult(Fail(e.toString), None)
+          }
         }
       } else {
-        sender() ! MergeResult(MemoryReadError("Invalid pdfList is passed"), None)
+          log.error("MemoryMerge2MemoryJob invalidate pdf list is passed: " + pdfList.mkString)
+        sender() ! MergeResult(MemoryReadError("Invalid pdf list is passed"), None)
       }
-      log.debug(pdfList.toString)
       
     case HtmlToPdfMemoryJob(uri) =>
       if(uriValidate(uri)){
+        log.info("HtmlToPdfMemoryJob Request: " + uri)
         val tempFile = File.createTempFile("pdfakka", System.currentTimeMillis.toString + ".pdf")
         log.debug("source absolute uri: " + uri)
         log.debug("dest absolute path: " + tempFile.getAbsolutePath)
         try{
           htmlToPdf(uri, tempFile.getAbsolutePath) match {
             case Some(process) =>
-              val fis = new FileInputStream(tempFile)
               try{
-                val buffer = new mutable.ArrayBuffer[Byte]
-                Stream.continually(fis.read()).takeWhile(_ != -1).map(_.toByte).foreach(buffer += _)
-                sender() ! TransResult(Success("translated"), Some(MemoryPdf("", buffer.toArray)))
+                val bytes = Files.readAllBytes(tempFile.toPath)
+                log.info("HtmlToPdfMemoryJob Success")
+                sender() ! TransResult(Success("translated"), Some(MemoryPdf("", bytes)))
               }finally{
-                fis.close()
                 tempFile.delete()
               }
-            case None =>
+            case None =>{
+              log.error("HtmlToPdfMemoryJob Failed. Check out: " + uri)
               sender() ! TransResult(TranslationError("Translation failed"), None)
+            }
           }
         }catch{
-          case e: Exception =>
+          case e: Exception =>{
+              log.error("HtmlToPdfMemoryJob Failed. Check out: " + e.toString + ", " + uri)
             sender() ! TransResult(Fail(e.toString), None)
+          }
         }
       }else{
+        log.error("HtmlToPdfMemoryJob Failed. invalid uri error: " + uri)
         sender() ! TransResult(UriError("Invalid uri error: " + uri.toString), None)
       }
     case state: CurrentClusterState =>

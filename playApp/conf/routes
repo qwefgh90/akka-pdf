@@ -5,7 +5,6 @@
 # An example controller showing a sample home page
 GET     /                           controllers.HomeController.index
 GET     /tick                       controllers.HomeController.tick
-GET     /a4                         controllers.HomeController.a4
 POST    /WebToPdf                   controllers.HomeController.WebToPdf    
 POST    /MemoryMergeToMemory                controllers.HomeController.MemoryMergeToMemory
 GET     /download/:id                           controllers.HomeController.download(id: Int)

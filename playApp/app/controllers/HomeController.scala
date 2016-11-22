@@ -22,8 +22,10 @@ import akka.actor.Props
 import akka.actor.Actor
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
+
 import javax.inject._
 import java.io._
+import java.nio.file._
 
 import services.PdfCache
 import io.github.qwefgh90.akka.pdf._
@@ -34,8 +36,8 @@ import io.github.qwefgh90.akka.pdf.PdfWorker._
   * application's home page.
   */
 @Singleton
-class HomeController @Inject() (lifecycle: ApplicationLifecycle, pdfCache: PdfCache) extends Controller {
-  implicit val timeout = Timeout(30 seconds)
+class HomeController @Inject() (conf: Configuration,lifecycle: ApplicationLifecycle, pdfCache: PdfCache) extends Controller {
+  implicit val timeout = Timeout(conf.getInt("play.akka.timeout").get seconds)
 
   val config = ConfigFactory.parseString(s"akka.remote.netty.tcp.port=" + 0).withFallback(
     ConfigFactory.parseString("akka.cluster.roles = [frontend]"))
@@ -53,7 +55,7 @@ class HomeController @Inject() (lifecycle: ApplicationLifecycle, pdfCache: PdfCa
   def WebToPdf = Action.async { request =>
     request.body.asFormUrlEncoded.map{form =>
       val uri = form("url")(0)
-      Logger.debug(s"request uri: $uri")
+      Logger.debug(s"WebToPdf Request url: $uri")
       val future = actor.ask(HtmlToPdfMemoryJob(uri));
       future.mapTo[TransResult].map{result =>
         result match{
@@ -65,210 +67,77 @@ class HomeController @Inject() (lifecycle: ApplicationLifecycle, pdfCache: PdfCa
             fos.write(pdf.bytes)
             fos.close()
             pdfCache.put(id, temp.getAbsolutePath)
-            Logger.info("savePath: " + temp.getAbsolutePath)
+            Logger.info("WebToPdf Success temporary pdf path: " + temp.getAbsolutePath)
             Ok(Json.toJson(Map("link" -> ("/download/"+id))))
           }
           case v => {
-            Logger.info(v.toString)
+            Logger.error("WebToPdf failed")
+            Logger.error(v.toString)
             InternalServerError(v.toString)
           }
         }
       }
     }.getOrElse{
+      Logger.error("WebToPdf invalid http request")
       Future(BadRequest)
     }
   }
 
   def MemoryMergeToMemory = Action.async(parse.multipartFormData) { request =>
-    try{
-      val files = request.body.files.sortWith((a,b) => a.key < b.key)
-      val list = files.map{temp =>
-        val buffer = new mutable.ArrayBuffer[Byte]
-        val fis = new FileInputStream(temp.ref.file)
-        try{
-          Stream.continually(fis.read).takeWhile(_ != -1).map(_.toByte).foreach(buffer += _)
-        }finally{
-          fis.close()
-        }
-        Logger.info(s"input ${temp.key} : " + temp.filename + ", " + buffer.length)
-        buffer.toArray
-      };
-
-      val future = actor ? MemoryMerge2MemoryJob(list.map{buf => ("", buf)}.toList);
-      future.mapTo[MergeResult].map{result =>
-        result match{
-          case MergeResult(Success(msg), Some(pdf: MemoryPdf)) => {
-            val id: Int = scala.util.Random.nextInt
-    	    val temp = File.createTempFile(System.currentTimeMillis.toString, id.toString);
-            temp.deleteOnExit()
-            val fos = new FileOutputStream(temp)
-            fos.write(pdf.bytes)
-            fos.close()
-            pdfCache.put(id, temp.getAbsolutePath)
-            Logger.info("savePath: " + temp.getAbsolutePath)
-            Ok(Json.toJson(Map("link" -> ("/download/"+id))))
-          }
-          case result => {
-            Logger.info(result.code.toString)
-            InternalServerError(result.code.toString)
-          }
-        }
-      }
-
-    }catch{
-      case e: Exception =>
-        e.printStackTrace()
-        Future(InternalServerError(e.toString))
-    }
-  }
-
-  def MemoryMergeToFile = Action.async(parse.multipartFormData) { request =>
-    try{
-      val savePath = request.body.dataParts("savePath")(0)
-      val files = request.body.files.sortWith((a,b) => a.key < b.key)
-      val list = files.map{temp =>
-        val buffer = new mutable.ArrayBuffer[Byte]
-        val fis = new FileInputStream(temp.ref.file)
-        try{
-          Stream.continually(fis.read).takeWhile(_ != -1).map(_.toByte).foreach(buffer += _)
-        }finally{
-          fis.close()
-        }
-        Logger.info("input file: " + temp.filename + ", " + buffer.length)
-        buffer.toArray
-      };
-
-      val future = actor ? MemoryMerge2MemoryJob(list.map{buf => ("", buf)}.toList);
-      future.mapTo[MergeResult].map{result =>
-        result match{
-          case MergeResult(Success(msg), Some(pdf: MemoryPdf)) => {
-            Logger.info("savePath: " + savePath)
-            val fos = new FileOutputStream(savePath)
-            fos.write(pdf.bytes)
-            fos.close()
-            val id: Int = scala.util.Random.nextInt
-            pdfCache.put(id, savePath)
-            Ok(Json.toJson(Map("link" -> ("/download/"+id))))
-
-          }
-          case result => {
-            Logger.info(result.code.toString)
-            InternalServerError(result.code.toString)
-          }
-        }
-    }
-    }catch{
-      case e: Exception =>
-        e.printStackTrace()
-        Future(InternalServerError(e.toString))
-    }
-  }
-
-  def FileMergeToFile = Action.async(parse.multipartFormData) { request =>
-    val savePath = request.body.dataParts("savePath")(0)
-    val fileMapToList = request.body.dataParts.toList.filter(_._1.startsWith("file")).sortWith((a,b) => a._1 < b._1)
-    val fileList = fileMapToList.map{tuple2 => (tuple2._1, tuple2._2(0))}
-
-    val list = fileList.map{temp =>
-      val buffer = new mutable.ArrayBuffer[Byte]
-      val fis = new FileInputStream(temp._2)
-      try{
-        Stream.continually(fis.read).takeWhile(_ != -1).map(_.toByte).foreach(buffer += _)
-      }finally{
-        fis.close()
-      }
-      Logger.info("input file: " + temp._2 + ", " + buffer.length)
-      buffer.toArray
+    val files = request.body.files.sortWith((a,b) => a.key < b.key)
+    val list = files.map{temp =>
+      val path = temp.ref.file.toPath
+      val bytes = Files.readAllBytes(path)
+      Logger.info("MemoryMergeToMemory Request")
+      Logger.info(s"multipart data ${temp.key} : " + temp.filename + ", " + bytes.length + " bytes")
+      bytes
     };
 
     val future = actor ? MemoryMerge2MemoryJob(list.map{buf => ("", buf)}.toList);
     future.mapTo[MergeResult].map{result =>
       result match{
         case MergeResult(Success(msg), Some(pdf: MemoryPdf)) => {
-          Logger.info("savePath: " + savePath)
-          val fos = new FileOutputStream(savePath)
+          val id: Int = scala.util.Random.nextInt
+    	  val temp = File.createTempFile(System.currentTimeMillis.toString, id.toString);
+          temp.deleteOnExit()
+          val fos = new FileOutputStream(temp)
           fos.write(pdf.bytes)
           fos.close()
-          val id: Int = scala.util.Random.nextInt
-          pdfCache.put(id, savePath)
+          pdfCache.put(id, temp.getAbsolutePath)
+          Logger.info("MemoryMergeToMemory Success temporary pdf path: " + temp.getAbsolutePath)
           Ok(Json.toJson(Map("link" -> ("/download/"+id))))
         }
-        case v => {
-          Logger.info(v.toString)
-          InternalServerError(v.toString)
+        case result => {
+          Logger.error("MemoryMergeToMemory failed")
+          Logger.error(result.code.toString)
+          InternalServerError(result.code.toString)
         }
       }
-    }
-  }
-
-
-  def FileMergeToMemory = Action.async(parse.multipartFormData) { request =>
-    try{
-      val fileMapToList = request.body.dataParts.toList.filter(_._1.startsWith("file")).sortWith((a,b) => a._1 < b._1)
-      val fileList = fileMapToList.map{tuple2 => (tuple2._1, tuple2._2(0))}
-
-      val list = fileList.map{temp =>
-        val buffer = new mutable.ArrayBuffer[Byte]
-        val fis = new FileInputStream(temp._2)
-        try{
-          Stream.continually(fis.read).takeWhile(_ != -1).map(_.toByte).foreach(buffer += _)
-        }finally{
-          fis.close()
-        }
-        Logger.info("file: " + temp._2 + ", " + buffer.length)
-        buffer.toArray
-      };
-
-      val future = actor ? MemoryMerge2MemoryJob(list.map{buf => ("", buf)}.toList);
-      future.mapTo[MergeResult].map{result =>
-        result match{
-          case MergeResult(Success(msg), Some(pdf: MemoryPdf)) => {
-            val id: Int = scala.util.Random.nextInt
-    	    val temp = File.createTempFile(System.currentTimeMillis.toString, id.toString);
-            temp.deleteOnExit()
-            val fos = new FileOutputStream(temp)
-            fos.write(pdf.bytes)
-            fos.close()
-            pdfCache.put(id, temp.getAbsolutePath)
-            Logger.info("savePath: " + temp.getAbsolutePath)
-            Ok(Json.toJson(Map("link" -> ("/download/"+id))))
-          }
-          case result => {
-            Logger.info(result.code.toString)
-            InternalServerError(result.code.toString)
-          }
-        }
-      }
-    }catch{
-      case e: Exception =>
-        e.printStackTrace()
-        Future(InternalServerError(e.toString))
     }
   }
 
   def download(id: Int) = Action{
-    val path = pdfCache.get(id)
+    val pathString = pdfCache.get(id)
     val buffer = new mutable.ArrayBuffer[Byte]
-    val fis = new FileInputStream(path)
+    val filePath = Paths.get(pathString)
+    val bytes = Files.readAllBytes(filePath)
+   /* val fis = new FileInputStream(path)
     try{
       Stream.continually(fis.read).takeWhile(_ != -1).map(_.toByte).foreach(buffer += _)
     }finally{
       fis.close()
-    }
-    Ok(buffer.toArray).as("application/x-download").withHeaders(("Content-disposition", "attachment; filename="+ id.abs + ".pdf"))
+    }*/
+    Ok(bytes).as("application/x-download").withHeaders(("Content-disposition", "attachment; filename="+ id.abs + ".pdf"))
 
   }
-
 
   def tick = Action.async {
     val future = actor ? "tick"
     future.mapTo[String].map{msg =>
       Ok(List(System.currentTimeMillis.toString, msg).mkString)}
   }
+
   def index = Action {
     Ok(views.html.index())
-  }
-  def a4 = Action {
-    Ok(views.html.test())
   }
 }
