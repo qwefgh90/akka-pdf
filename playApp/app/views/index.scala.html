@@ -3,6 +3,37 @@
   <head>
     <script data-main="@routes.Assets.versioned("javascripts/entry.js")" type="text/javascript" src="@routes.Assets.versioned("lib/requirejs/require.js")"></script>
     <link rel="stylesheet" href="@routes.Assets.versioned("lib/bootstrap/css/bootstrap.css")" type="text/css" />
+    <style>
+      .button {
+      -moz-appearance: button;
+      /* Firefox */
+      -webkit-appearance: button;
+      /* Safari and Chrome */
+      padding: 10px;
+      margin: 10px;
+      width: 70px;
+      }
+      .drop-box {
+      background: #F8F8F8;
+      border: 5px dashed #DDD;
+      width: 400px;
+      height: 130px;
+      text-align: center;
+      padding-top: 50px;
+      margin: 10px;
+      }
+      .dragover {
+      border: 5px dashed blue;
+      }
+      ul[dnd-list] .dndPlaceholder {
+      display: block;
+      background-color: #ddd;
+      min-height: 42px;
+      }
+      ul[dnd-list] .dndDraggingSource {
+      display: none;
+      }
+    </style>
   </head>
   <body class="container">
     <h3>PDF Merge: </h3>
@@ -15,9 +46,40 @@
       <input type="text" ng-model="url" class="form-control col-sm-8" placeholder="https://github.com" />
       <button class="btn btn-default" ng-click="webToPdf()">Convert</button>
     </div>
-
     <hr>
-    <p>by chang (https://github.com/qwefgh90)</p>
-  </body>
+
+    <h3>Drop files </h3>
+    <div ngf-drop ngf-select ng-model="dropFiles" class="drop-box" 
+         ngf-drag-over-class="'dragover'" ngf-multiple="true" ngf-allow-dir="true"
+         accept="application/pdf" style="box-sizing: content-box"
+         ngf-pattern="'application/pdf'">Drop pdfs or images here or click to upload</div>
+    <div ngf-no-file-drop>File Drag/Drop is not supported for this browser</div>
+
+    Files:
+    <ul style="list-style-type: none; padding-left:0px" dnd-list="model.files">
+      <!-- The dnd-draggable directive makes an element draggable and will
+           transfer the object that was assigned to it. If an element was
+           dragged away, you have to remove it from the original list
+           yourself using the dnd-moved attribute -->
+      <li ng-repeat="item in model.files"
+          dnd-draggable="item"
+          dnd-moved="remove($index)"
+          dnd-effect-allowed="move"
+          dnd-selected="selected = item"
+          ng-class="{'selected': selected === item}"
+          style="border:1px solid #ddd; padding: 10px 15px">
+        <dnd-nodrag>
+          <div dnd-handle class="handle">
+             <span class="glyphicon glyphicon-trash" style="cursor: pointer"
+                   ng-click="remove($index)"></span> <span>{{item.name}}</span>
+          </div>
+        </dnd-nodrag>
+      </li>
+    </ul>
+    <button ng-click="uploadDropFiles()">Submit</button>
+
+<hr>
+<p>by chang (https://github.com/qwefgh90)</p>
+</body>
 </html>
 

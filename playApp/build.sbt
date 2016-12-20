@@ -16,6 +16,7 @@ libraryDependencies ++= Seq(
   "org.webjars.npm" % "angular-ui-bootstrap" % "2.0.0",
   "org.webjars.npm" % "jquery" % "1.12.4",
   "org.webjars.bower" % "ng-file-upload" % "12.2.5",
+  "org.webjars.bower" % "angular-drag-and-drop-lists" % "1.4.0",
        "org.apache.pdfbox" % "pdfbox" % "2.0.2",
       "org.apache.pdfbox" % "xmpbox" % "2.0.2",
       "org.scalatest" % "scalatest_2.11" % "2.2.6" % "test",

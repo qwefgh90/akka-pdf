@@ -5,6 +5,53 @@ define(function () {
     var mainController = function($scope, $location, Upload, $timeout, $log, $window, $http, $httpParamSerializer){
         $scope.path = '';
         $scope.url = '';
+        
+        $scope.sample = [{'label':'1'},{'label':'2'},{'label':'3'},{'label':'4'},{'label':'5'}];
+        $scope.selected = false;
+        
+        $scope.model = {
+            binaries : [],
+            files : []
+        };
+
+        $scope.$watch('dropFiles', function (files) {
+            if(typeof files == 'object'){
+                files.forEach(function(f){
+                    $scope.model.binaries.push(f);
+                    $scope.model.files.push({'lastModified' : f.lastModified,
+                                             'name' : f.name,
+                                             'size' : f.size
+                                            });
+                    $log.debug(f.name);
+                });
+            }
+        });
+
+        $scope.uploadDropFiles = function(){
+            var files = [];
+            for(var i=0 ; i < $scope.model.files.length; i++){
+                var fileInfo = $scope.model.files[i];
+                for(var j=0; j < $scope.model.binaries.length; j++){
+                    if(fileInfo.lastModified == $scope.model.binaries[j].lastModified
+                       && fileInfo.name == $scope.model.binaries[j].name
+                       && fileInfo.size == $scope.model.binaries[j].size){
+                        files.push($scope.model.binaries[j]);
+                        break;
+                    }
+                }
+            }
+            $scope.uploadFiles(files);
+        };
+
+        $scope.remove = function(index){
+            $scope.model.files.splice(index, 1)
+            $log.debug('start');
+            $scope.model.files.forEach(function(f){
+                $log.debug(f.name);
+            });
+            $log.debug('end');
+        };
+
         $scope.webToPdf = function(){
             var data = {'url': $scope.url};
             var config = {
